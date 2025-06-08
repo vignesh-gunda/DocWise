@@ -1,90 +1,90 @@
-import os
-import tempfile
+# import os
+# import tempfile
 
-import streamlit as st
-from streamlit.runtime.uploaded_file_manager import UploadedFile
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_core.documents import Document
-from langchain_community.document_loaders import PyMuPDFLoader
+# import streamlit as st
+# from streamlit.runtime.uploaded_file_manager import UploadedFile
+# from langchain_text_splitters import RecursiveCharacterTextSplitter
+# from langchain_core.documents import Document
+# from langchain_community.document_loaders import PyMuPDFLoader
 
-# Vector Database utilities
+# # Vector Database utilities
 
-import chromadb
-from chromadb.utils.embedding_functions.ollama_embedding_function import OllamaEmbeddingFunction
+# import chromadb
+# from chromadb.utils.embedding_functions.ollama_embedding_function import OllamaEmbeddingFunction
 
 
-def process_document(uploaded_file: UploadedFile) -> list[Document]:
-    # Store an uploaded temporary file
-    temp_file = tempfile.NamedTemporaryFile("wb", suffix=".pdf", delete=False)
-    temp_file.write(uploaded_file.read())
+# def process_document(uploaded_file: UploadedFile) -> list[Document]:
+#     # Store an uploaded temporary file
+#     temp_file = tempfile.NamedTemporaryFile("wb", suffix=".pdf", delete=False)
+#     temp_file.write(uploaded_file.read())
 
-    loader = PyMuPDFLoader(temp_file.name)
-    docs = loader.load()
+#     loader = PyMuPDFLoader(temp_file.name)
+#     docs = loader.load()
     
-    # removing the uploaded file 
-    os.unlink(temp_file.name)
+#     # removing the uploaded file 
+#     os.unlink(temp_file.name)
 
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size = 400,
-        chunk_overlap = 100,
-        separators = ["\n\n", "\n", ".", "?", "!" ," ", ""],
-    )
-    return text_splitter.split_documents(docs)
+#     text_splitter = RecursiveCharacterTextSplitter(
+#         chunk_size = 400,
+#         chunk_overlap = 100,
+#         separators = ["\n\n", "\n", ".", "?", "!" ," ", ""],
+#     )
+#     return text_splitter.split_documents(docs)
 
-def get_vector_collection() -> chromadb.Collection:
-    ollama_ef = OllamaEmbeddingFunction(
-        url="http://localhost:11434/api/embeddings",
-        model_name="nomic-embed-text:latest", 
-    )
+# def get_vector_collection() -> chromadb.Collection:
+#     ollama_ef = OllamaEmbeddingFunction(
+#         url="http://localhost:11434/api/embeddings",
+#         model_name="nomic-embed-text:latest", 
+#     )
 
-    chroma_client = chromadb.PersistentClient(path="./demo-rag-chroma")
-    return chroma_client.get_or_create_collection(
-        name="DocWise_Rag_App",
-        embedding_function=ollama_ef,
-        metadata={"hnsw:space": "cosine"},
-    )
+#     chroma_client = chromadb.PersistentClient(path="./demo-rag-chroma")
+#     return chroma_client.get_or_create_collection(
+#         name="DocWise_Rag_App",
+#         embedding_function=ollama_ef,
+#         metadata={"hnsw:space": "cosine"},
+#     )
 
-def add_to_vector_collection(all_splits: list[Document], file_name: str):
-    collection = get_vector_collection()
+# def add_to_vector_collection(all_splits: list[Document], file_name: str):
+#     collection = get_vector_collection()
 
-    documents, metadatas, ids = [], [], []
+#     documents, metadatas, ids = [], [], []
 
-    for idx, split in enumerate(all_splits):
-        documents.append(split.page_content)
-        metadatas.append(split.metadata)
-        ids.append(f"{file_name}_{idx}")
+#     for idx, split in enumerate(all_splits):
+#         documents.append(split.page_content)
+#         metadatas.append(split.metadata)
+#         ids.append(f"{file_name}_{idx}")
 
-    collection.upsert(
-        documents=documents,
-        metadatas=metadatas,
-        ids=ids,
-    )
-    st.success("Data added to your vector store")
+#     collection.upsert(
+#         documents=documents,
+#         metadatas=metadatas,
+#         ids=ids,
+#     )
+#     st.success("Data added to your vector store")
 
-if __name__ == "__main__":
-    with st.sidebar:
-        st.set_page_config(page_title="DocWise RAG Application")
-        st.header("RAG Question and Answer")
-        uploaded_file = st.file_uploader(
-            "Upload files", type=["pdf"] , accept_multiple_files=False
-        )
+# if __name__ == "__main__":
+#     with st.sidebar:
+#         st.set_page_config(page_title="DocWise RAG Application")
+#         st.header("RAG Question and Answer")
+#         uploaded_file = st.file_uploader(
+#             "Upload files", type=["pdf"] , accept_multiple_files=False
+#         )
     
-        process = st.button(
-            "UPLOAD",
-        )
+#         process = st.button(
+#             "UPLOAD",
+#         )
 
-    if uploaded_file and process :
-        normalize_Uploaded_file_name = uploaded_file.name.translate(
-            str.maketrans({"-":"_", ".":"_", " ":"_"})
-        )
-        all_splits = process_document(uploaded_file)
-        add_to_vector_collection(all_splits, normalize_Uploaded_file_name)
-        st.write(all_splits)
+#     if uploaded_file and process :
+#         normalize_Uploaded_file_name = uploaded_file.name.translate(
+#             str.maketrans({"-":"_", ".":"_", " ":"_"})
+#         )
+#         all_splits = process_document(uploaded_file)
+#         add_to_vector_collection(all_splits, normalize_Uploaded_file_name)
+#         st.write(all_splits)
 
-    st.text_area("Ask me a question related to your document:")
-    ask = st.button(
-        "ASK",
-    )
+#     st.text_area("Ask me a question related to your document:")
+#     ask = st.button(
+#         "ASK",
+#     )
 
 
 import os
